@@ -93,57 +93,50 @@
                <queue name="DLQ" />
             </anycast>
          </address>
+
          <address name="ExpiryQueue">
             <anycast>
                <queue name="ExpiryQueue" />
             </anycast>
          </address>
 
-         <!-- Canales para José Clavijo (jcl) - TechNova SpA -->
-         
-         <!-- Entrada: Pedidos XML Tienda Web -->
+         <!-- Canales para José Clavijo - Evaluación 2 -->
          <address name="jcl_web_pedidos">
             <anycast>
                <queue name="jcl_web_pedidos" />
             </anycast>
          </address>
 
-         <!-- Entrada: Pedidos JSON Marketplace -->
          <address name="jcl_mkp_pedidos">
             <anycast>
                <queue name="jcl_mkp_pedidos" />
             </anycast>
          </address>
 
-         <!-- Central: Bus Canónico (JSON Unificado) -->
          <address name="jcl_pedidos">
             <anycast>
                <queue name="jcl_pedidos" />
             </anycast>
          </address>
 
-         <!-- Salida: Hacia Sistema Legado Facturación -->
          <address name="jcl_facturacion">
             <anycast>
                <queue name="jcl_facturacion" />
             </anycast>
          </address>
 
-         <!-- Salida: Respuesta/Confirmación Facturación (ACK) -->
          <address name="jcl_facturacion_respuesta">
             <anycast>
                <queue name="jcl_facturacion_respuesta" />
             </anycast>
          </address>
 
-         <!-- Salida: Hacia Sistema de Bodega -->
          <address name="jcl_bodega">
             <anycast>
                <queue name="jcl_bodega" />
             </anycast>
          </address>
-
-      </addresses>
+   </addresses>
 
    </core>
 </configuration>

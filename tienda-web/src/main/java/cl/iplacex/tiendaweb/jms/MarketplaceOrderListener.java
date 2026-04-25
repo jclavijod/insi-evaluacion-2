@@ -1,17 +1,16 @@
 package cl.iplacex.tiendaweb.jms;
 
+import cl.iplacex.tiendaweb.model.PedidoCanonico;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class MarketplaceOrderListener {
@@ -19,110 +18,93 @@ public class MarketplaceOrderListener {
     private final JmsTemplate jmsTemplate;
     private final ObjectMapper objectMapper;
     private final String colaCanonical;
-    private final String marketplaceBaseUrl;
-    private final RestTemplate restTemplate = new RestTemplate();
 
     public MarketplaceOrderListener(JmsTemplate jmsTemplate,
-                                   ObjectMapper objectMapper,
-                                   @Value("${queue.canonical.pedidos}") String colaCanonical,
-                                   @Value("${marketplace.base-url:}") String marketplaceBaseUrl) {
+                    ObjectMapper objectMapper,
+                    @Value("${queue.canonical.pedidos}") String colaCanonical) {
         this.jmsTemplate = jmsTemplate;
         this.objectMapper = objectMapper;
         this.colaCanonical = colaCanonical;
-        this.marketplaceBaseUrl = marketplaceBaseUrl;
     }
 
-    @JmsListener(destination = "${queue.mkp.pedidos}")
+    @JmsListener(destination = "${queue.marketplace.pedidos}")
     public void receiveMessage(String jsonMessage) {
         try {
-            System.out.println(">>> MarketplaceListener recibió JSON: " + jsonMessage);
+            System.out.println(">>> Marketplace recibió JSON: " + jsonMessage);
+
             JsonNode root = objectMapper.readTree(jsonMessage);
 
-            // EIP: Content Enricher - shippingCost
-            String shippingCost = "0";
-            if (marketplaceBaseUrl != null && !marketplaceBaseUrl.isBlank()) {
-                String id = firstText(root, "idVenta", "id", "orderId");
-                if (id != null) {
-                    try {
-                        String url = marketplaceBaseUrl + "/orders/" + id + "/shipping-cost";
-                        ResponseEntity<String> resp = restTemplate.getForEntity(url, String.class);
-                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
-                            shippingCost = resp.getBody();
-                        }
-                    } catch (Exception ex) {
-                        System.err.println("Info: No se pudo enriquecer shipping-cost, se usará 0");
-                    }
+            PedidoCanonico pedido = new PedidoCanonico();
+            pedido.idVenta = firstText(root, "idVenta", "id", "orderId", "pedidoId", "numeroPedido");
+            if (pedido.idVenta == null || pedido.idVenta.isBlank()) {
+                pedido.idVenta = "MP-" + Instant.now().toEpochMilli();
+            }
+
+            pedido.origen = "MARKETPLACE";
+            pedido.fechaHora = firstText(root, "fechaHora", "fecha", "timestamp");
+            if (pedido.fechaHora == null || pedido.fechaHora.isBlank()) {
+                pedido.fechaHora = Instant.now().toString();
+            }
+
+            PedidoCanonico.Cliente cliente = new PedidoCanonico.Cliente();
+            cliente.nombre = firstText(root, "clienteNombre", "customerName", "nombreCliente", "nombre");
+            cliente.email = firstText(root, "clienteEmail", "email");
+
+            JsonNode clienteNode = root.path("cliente");
+            if (!clienteNode.isMissingNode()) {
+                if (cliente.nombre == null || cliente.nombre.isBlank()) {
+                    cliente.nombre = firstText(clienteNode, "nombre", "name");
+                }
+                if (cliente.email == null || cliente.email.isBlank()) {
+                    cliente.email = firstText(clienteNode, "email");
                 }
             }
 
-            // Construir JSON Canónico
-            ObjectNode pedido = objectMapper.createObjectNode();
+            pedido.cliente = cliente;
 
-            String idVenta = firstText(root, "idVenta", "id", "orderId");
-            pedido.put("idVenta", idVenta != null ? idVenta : "MP-" + Instant.now().toEpochMilli());
-            pedido.put("origen", "MARKETPLACE");
-            pedido.put("fechaHora", firstText(root, "fechaHora", "fecha", "timestamp") != null ?
-                    firstText(root, "fechaHora", "fecha", "timestamp") : Instant.now().toString());
-
-            // Cliente
-            ObjectNode cliente = objectMapper.createObjectNode();
-            JsonNode cNode = root.path("cliente");
-            putText(cliente, "nombre", firstText(root, "clienteNombre", "customerName", "nombre"));
-            if ((cliente.get("nombre") == null || cliente.get("nombre").isNull()) && !cNode.isMissingNode()) {
-                putText(cliente, "nombre", firstText(cNode, "nombre", "name"));
-            }
-            putText(cliente, "rut", firstText(root, "rut", "taxId"));
-            putText(cliente, "telefono", firstText(root, "telefono", "phone"));
-            putText(cliente, "email", firstText(root, "email", "mail"));
-            pedido.set("cliente", cliente);
-
-            // Entrega
-            ObjectNode entrega = objectMapper.createObjectNode();
-            putText(entrega, "calleYNumero", firstText(root, "direccion", "address", "calle"));
-            putText(entrega, "comuna", firstText(root, "comuna", "city"));
-            putText(entrega, "costoEnvio", shippingCost);
-            pedido.set("entrega", entrega);
-
-            // Detalle
-            ArrayNode detalle = objectMapper.createArrayNode();
-            JsonNode itemsNode = firstArrayNode(root, "items", "detalle", "productos", "lineas");
+            List<PedidoCanonico.Item> items = new ArrayList<>();
+            JsonNode itemsNode = firstArrayNode(root, "detalle", "items", "lineas", "productos");
             if (itemsNode != null && itemsNode.isArray()) {
                 for (JsonNode itemNode : itemsNode) {
-                    ObjectNode linea = objectMapper.createObjectNode();
-                    putText(linea, "codigo", firstText(itemNode, "sku", "codigo", "id"));
-                    putText(linea, "nombreProducto", firstText(itemNode, "nombre", "productName", "descripcion"));
-                    linea.put("cantidad", itemNode.path("cantidad").asInt(itemNode.path("qty").asInt(1)));
-                    linea.put("precioLista", itemNode.path("precio").asLong(itemNode.path("price").asLong(0L)));
-                    linea.put("costo", itemNode.path("costo").asLong(0L));
-                    putText(linea, "categoria", firstText(itemNode, "categoria", "category"));
-                    detalle.add(linea);
+                    PedidoCanonico.Item item = new PedidoCanonico.Item();
+                    item.codigo = firstText(itemNode, "codigo", "sku", "producto", "idProducto");
+                    if (item.codigo == null) {
+                    item.codigo = "";
+                    }
+
+                    String cantidadStr = firstText(itemNode, "cantidad", "qty", "cantidadProducto");
+                    try {
+                    item.cantidad = cantidadStr != null ? Integer.parseInt(cantidadStr) : 1;
+                    } catch (NumberFormatException e) {
+                    item.cantidad = 1;
+                    }
+
+                    items.add(item);
                 }
             }
-            pedido.set("detalle", detalle);
 
-            String jsonCanonico = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(pedido);
-            System.out.println("<<< Marketplace convertido a JSON canónico:\n" + jsonCanonico);
+            pedido.detalle = items;
+
+            String jsonCanonico = objectMapper.writeValueAsString(pedido);
+            System.out.println("<<< Marketplace convertido a JSON canónico: " + jsonCanonico);
 
             jmsTemplate.convertAndSend(colaCanonical, jsonCanonico);
             System.out.println(">>> Enviado a cola canónica: " + colaCanonical);
 
         } catch (Exception e) {
-            System.err.println("Error en MarketplaceOrderListener: " + e.getMessage());
+            System.err.println("Error traduciendo Marketplace -> Canonical: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private static void putText(ObjectNode node, String fieldName, String value) {
-        if (value == null || value.isBlank()) node.putNull(fieldName);
-        else node.put(fieldName, value);
-    }
-
     private String firstText(JsonNode node, String... keys) {
         for (String key : keys) {
-            JsonNode val = node.path(key);
-            if (!val.isMissingNode() && !val.isNull()) {
-                String t = val.asText();
-                if (t != null && !t.isBlank()) return t.trim();
+            JsonNode value = node.path(key);
+            if (!value.isMissingNode() && !value.isNull()) {
+                String text = value.asText();
+                if (text != null && !text.isBlank()) {
+                    return text.trim();
+                }
             }
         }
         return null;
@@ -130,8 +112,10 @@ public class MarketplaceOrderListener {
 
     private JsonNode firstArrayNode(JsonNode node, String... keys) {
         for (String key : keys) {
-            JsonNode val = node.path(key);
-            if (val != null && val.isArray()) return val;
+            JsonNode value = node.path(key);
+            if (value != null && value.isArray()) {
+                return value;
+            }
         }
         return null;
     }

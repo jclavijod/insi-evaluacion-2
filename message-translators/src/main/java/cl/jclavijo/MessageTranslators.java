@@ -14,7 +14,6 @@ import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -25,11 +24,8 @@ import java.time.Instant;
 
 /**
  * MessageTranslators
- *
- * Implementa los traductores para:
- * 1. XML (Web) -> JSON Canónico [LOG 3]
- * 2. JSON Enriquecido (MKP) -> JSON Canónico [LOG 4]
- *
+ * XML (Web) -> JSON Canónico [LOG 3]
+ * JSON MKP -> JSON Canónico [LOG 4]
  * Publica el resultado en la cola final: jcl_pedidos
  */
 public class MessageTranslators {
@@ -246,7 +242,7 @@ public class MessageTranslators {
         return value != null && !value.isBlank();
     }
 
-    private static String getString(JsonObject obj, String key) {
+    private static String getString(com.google.gson.JsonObject obj, String key) {
         try {
             if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
                 return obj.get(key).getAsString().trim();
@@ -256,10 +252,10 @@ public class MessageTranslators {
         return null;
     }
 
-    private static String getNestedString(JsonObject obj, String parent, String child) {
+    private static String getNestedString(com.google.gson.JsonObject obj, String parent, String child) {
         try {
             if (obj != null && obj.has(parent) && obj.get(parent).isJsonObject()) {
-                JsonObject nested = obj.getAsJsonObject(parent);
+                com.google.gson.JsonObject nested = obj.getAsJsonObject(parent);
                 return getString(nested, child);
             }
         } catch (Exception ignored) {
@@ -267,7 +263,7 @@ public class MessageTranslators {
         return null;
     }
 
-    private static int getInt(JsonObject obj, String key, int defaultValue) {
+    private static int getInt(com.google.gson.JsonObject obj, String key, int defaultValue) {
         try {
             if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
                 return obj.get(key).getAsInt();

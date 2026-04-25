@@ -46,7 +46,7 @@ public class MarketplaceOrderListener {
                     try {
                         String url = marketplaceBaseUrl + "/orders/" + id + "/shipping-cost";
                         ResponseEntity<String> resp = restTemplate.getForEntity(url, String.class);
-                        if (resp.getStatusCode().is2xxSuccessful()) {
+                        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                             shippingCost = resp.getBody();
                         }
                     } catch (Exception ex) {
@@ -55,45 +55,46 @@ public class MarketplaceOrderListener {
                 }
             }
 
-            // Construir JSON Canónico corregido
+            // Construir JSON Canónico
             ObjectNode pedido = objectMapper.createObjectNode();
-            
+
             String idVenta = firstText(root, "idVenta", "id", "orderId");
             pedido.put("idVenta", idVenta != null ? idVenta : "MP-" + Instant.now().toEpochMilli());
             pedido.put("origen", "MARKETPLACE");
-            pedido.put("fechaHora", Instant.now().toString());
+            pedido.put("fechaHora", firstText(root, "fechaHora", "fecha", "timestamp") != null ?
+                    firstText(root, "fechaHora", "fecha", "timestamp") : Instant.now().toString());
 
             // Cliente
             ObjectNode cliente = objectMapper.createObjectNode();
             JsonNode cNode = root.path("cliente");
-            cliente.put("nombre", firstText(root, "clienteNombre", "customerName", "nombre"));
-            if (cliente.get("nombre") == null && !cNode.isMissingNode()) {
-                cliente.put("nombre", firstText(cNode, "nombre", "name"));
+            putText(cliente, "nombre", firstText(root, "clienteNombre", "customerName", "nombre"));
+            if ((cliente.get("nombre") == null || cliente.get("nombre").isNull()) && !cNode.isMissingNode()) {
+                putText(cliente, "nombre", firstText(cNode, "nombre", "name"));
             }
-            cliente.put("rut", firstText(root, "rut", "taxId"));
-            cliente.put("telefono", firstText(root, "telefono", "phone"));
-            cliente.put("email", firstText(root, "email", "mail"));
+            putText(cliente, "rut", firstText(root, "rut", "taxId"));
+            putText(cliente, "telefono", firstText(root, "telefono", "phone"));
+            putText(cliente, "email", firstText(root, "email", "mail"));
             pedido.set("cliente", cliente);
 
             // Entrega
             ObjectNode entrega = objectMapper.createObjectNode();
-            entrega.put("calleYNumero", firstText(root, "direccion", "address", "calle"));
-            entrega.put("comuna", firstText(root, "comuna", "city"));
-            entrega.put("costoEnvio", shippingCost);
+            putText(entrega, "calleYNumero", firstText(root, "direccion", "address", "calle"));
+            putText(entrega, "comuna", firstText(root, "comuna", "city"));
+            putText(entrega, "costoEnvio", shippingCost);
             pedido.set("entrega", entrega);
 
             // Detalle
             ArrayNode detalle = objectMapper.createArrayNode();
-            JsonNode itemsNode = firstArrayNode(root, "items", "detalle", "productos");
+            JsonNode itemsNode = firstArrayNode(root, "items", "detalle", "productos", "lineas");
             if (itemsNode != null && itemsNode.isArray()) {
                 for (JsonNode itemNode : itemsNode) {
                     ObjectNode linea = objectMapper.createObjectNode();
-                    linea.put("codigo", firstText(itemNode, "sku", "codigo", "id"));
-                    linea.put("nombreProducto", firstText(itemNode, "nombre", "productName", "descripcion"));
-                    linea.put("cantidad", itemNode.path("cantidad").asInt(1));
-                    linea.put("precioLista", itemNode.path("precio").asLong(0));
-                    linea.put("costo", itemNode.path("costo").asLong(0));
-                    linea.put("categoria", firstText(itemNode, "categoria", "category"));
+                    putText(linea, "codigo", firstText(itemNode, "sku", "codigo", "id"));
+                    putText(linea, "nombreProducto", firstText(itemNode, "nombre", "productName", "descripcion"));
+                    linea.put("cantidad", itemNode.path("cantidad").asInt(itemNode.path("qty").asInt(1)));
+                    linea.put("precioLista", itemNode.path("precio").asLong(itemNode.path("price").asLong(0L)));
+                    linea.put("costo", itemNode.path("costo").asLong(0L));
+                    putText(linea, "categoria", firstText(itemNode, "categoria", "category"));
                     detalle.add(linea);
                 }
             }
@@ -111,17 +112,25 @@ public class MarketplaceOrderListener {
         }
     }
 
+    private static void putText(ObjectNode node, String fieldName, String value) {
+        if (value == null || value.isBlank()) node.putNull(fieldName);
+        else node.put(fieldName, value);
+    }
+
     private String firstText(JsonNode node, String... keys) {
         for (String key : keys) {
-            JsonNode val = node.get(key);
-            if (val != null && !val.isNull()) return val.asText();
+            JsonNode val = node.path(key);
+            if (!val.isMissingNode() && !val.isNull()) {
+                String t = val.asText();
+                if (t != null && !t.isBlank()) return t.trim();
+            }
         }
         return null;
     }
 
     private JsonNode firstArrayNode(JsonNode node, String... keys) {
         for (String key : keys) {
-            JsonNode val = node.get(key);
+            JsonNode val = node.path(key);
             if (val != null && val.isArray()) return val;
         }
         return null;

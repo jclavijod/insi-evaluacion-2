@@ -16,7 +16,7 @@ public class BillingAdapterListener {
 
     public BillingAdapterListener(ObjectMapper objectMapper,
                                   JmsTemplate jmsTemplate,
-                                  @Value("${queue.facturacion}") String queueFacturacion) {
+                                  @Value("${queue.facturacion:jcl_facturacion}") String queueFacturacion) {
         this.objectMapper = objectMapper;
         this.jmsTemplate = jmsTemplate;
         this.queueFacturacion = queueFacturacion;
@@ -40,7 +40,6 @@ public class BillingAdapterListener {
         } catch (Exception e) {
             System.err.println("Error en Billing Adapter: " + e.getMessage());
             e.printStackTrace();
-            // Aquí podrías reintentar o enviar a una DLQ
         }
     }
 

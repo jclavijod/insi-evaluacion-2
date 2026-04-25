@@ -17,13 +17,13 @@ public class LegacyBillingConsumer {
         this.queueRespuesta = queueRespuesta;
     }
 
-    @JmsListener(destination = "${queue.facturacion}")
+    @JmsListener(destination = "${queue.facturacion:jcl_facturacion}")
     public void consumirSoap(String soapPayload) {
         try {
             System.out.println(">>> LEGADO (simulado) recibió SOAP en jcl_facturacion:");
             System.out.println(soapPayload);
 
-            // Simular procesamiento (aquí podrías parsear el SOAP si quieres extraer campos)
+            // Simular procesamiento
             String correlacion = "ACK-" + System.currentTimeMillis();
             String respuesta = "<respuesta><status>OK</status><correlacion>" + correlacion + "</correlacion></respuesta>";
 

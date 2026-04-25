@@ -7,15 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
+import org.w3c.dom.*;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class OrderTranslatorListener {
@@ -23,13 +21,16 @@ public class OrderTranslatorListener {
     private final JmsTemplate jmsTemplate;
     private final ObjectMapper objectMapper;
     private final String colaCanonical;
+    private final String colaBodega;
 
     public OrderTranslatorListener(JmsTemplate jmsTemplate,
                                    ObjectMapper objectMapper,
-                                   @Value("${queue.canonical.pedidos}") String colaCanonical) {
+                                   @Value("${queue.canonical.pedidos}") String colaCanonical,
+                                   @Value("${queue.bodega.pedidos:jcl_bodega}") String colaBodega) {
         this.jmsTemplate = jmsTemplate;
         this.objectMapper = objectMapper;
         this.colaCanonical = colaCanonical;
+        this.colaBodega = colaBodega;
     }
 
     @JmsListener(destination = "${queue.web.pedidos}")
@@ -99,12 +100,18 @@ public class OrderTranslatorListener {
             String jsonCanonico = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(pedido);
             System.out.println("<<< Traductor produjo JSON canónico:\n" + jsonCanonico);
 
+            // Enviar a la cola canónica (para facturación)
             jmsTemplate.convertAndSend(colaCanonical, jsonCanonico);
-            System.out.println(">>> Enviado a cola canonical: " + colaCanonical);
+            System.out.println(">>> Enviado a cola canónica (Facturación): " + colaCanonical);
+
+            // Enviar también a la cola de Bodega
+            jmsTemplate.convertAndSend(colaBodega, jsonCanonico);
+            System.out.println(">>> Enviado a cola de Bodega: " + colaBodega);
 
         } catch (Exception e) {
             System.err.println("Error traduciendo mensaje XML -> JSON: " + e.getMessage());
             e.printStackTrace();
+            // Nota: podrías enviar aquí a DLQ si quisieras
         }
     }
 

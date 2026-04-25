@@ -1,11 +1,11 @@
 package cl.jclavijo.bodega;
 
-import jakarta.jms.Connection;
-import jakarta.jms.ConnectionFactory;
-import jakarta.jms.MessageConsumer;
-import jakarta.jms.MessageListener;
-import jakarta.jms.Session;
-import jakarta.jms.TextMessage;
+import javax.jms.*;
+import javax.jms.*;
+import javax.jms.*;
+import javax.jms.*;
+import javax.jms.*;
+import javax.jms.*;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 public class WarehouseAdapterMain {

@@ -1,1 +1,12 @@
 marketplace-1.0.0-runner.jar
+
+# Ignore Maven build outputs and compiled classes
+**/target/
+*.class
+# Ignore backup files
+*.bak
+# Ignore Maven build outputs and compiled classes
+**/target/
+*.class
+# Ignore backup files
+*.bak

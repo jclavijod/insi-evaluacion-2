@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html data-th-replace="~{layout :: layout(_, ~{::#cuerpo})}">
+
+<body>
+	<div id="cuerpo">
+		
+		<form action="" method="post" class="mt-5 mb-5 w-50 mx-auto bg-light p-3 border">
+			
+			<div class="text-danger" data-th-if="${param.error}">Usuario o contraseña incorrecta.</div>
+			<div data-th-if="${param.logout}">Has cerrado sesión.</div>
+			
+			<h2 class="my-5">Ingreso clientes</h2>
+			<!-- Email input -->
+			<div data-mdb-input-init class="form-outline mb-4">
+				<input type="text" id="form2Example1" name="username" class="form-control" />
+				<label class="form-label" for="form2Example1">Usuario</label>
+			</div>
+
+			<!-- Password input -->
+			<div data-mdb-input-init class="form-outline mb-4">
+				<input type="password" id="form2Example2" class="form-control" name="password" />
+				<label class="form-label" for="form2Example2">Contraseña</label>
+			</div>
+
+			<!-- 2 column grid layout for inline styling -->
+			<div class="row mb-4">
+				<div class="col d-flex justify-content-center">
+					<!-- Checkbox -->
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" value="" id="form2Example31" checked />
+						<label class="form-check-label" for="form2Example31"> Recuérdame </label>
+					</div>
+				</div>
+
+				<div class="col">
+					<!-- Simple link -->
+					<a href="#!">¿Olvidaste la contraseña? Lo lamento, acá no se puede recuperar!!!</a>
+				</div>
+			</div>
+
+			<!-- Submit button -->
+			<button type="submit" data-mdb-ripple-init class="btn btn-primary btn-block mb-4">Ingresar</button>
+
+			<!-- Register buttons -->
+			<div class="text-center">
+				<p>¿Aún no eres cliente?<a href="#!">Por el momento solo atendemos clientes VIP</a></p>
+			</div>
+			
+			<input type="hidden"
+				data-th-name="${_csrf.parameterName}"
+				data-th-value="${_csrf.token}" />
+		</form>
+
+	</div>
+</body>
+
+</html>

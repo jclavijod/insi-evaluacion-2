@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html data-th-replace="~{layout :: layout(_, ~{::#cuerpo})}">	
+	<body>
+		<div id="cuerpo">
+			<h2 
+				data-th-text="${categoria.nombre}"
+				class="text-center mt-5 mb-3"
+			>
+				Categoría
+			</h2>
+			<div data-th-insert="~{includes/avisos :: avisos}"></div>
+		</div>
+	</body>
+</html>

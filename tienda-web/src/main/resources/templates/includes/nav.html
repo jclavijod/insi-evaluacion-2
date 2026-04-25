@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<title>Menú Navegación</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+	<!-- Bootstrap icons-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />    
+</head>
+
+<body>
+	<template data-th-remove="all">
+		<ul 
+			data-th-if="${!#lists.isEmpty(submenu)}"
+			data-th-fragment="submenu(id, submenu)" 
+			class="dropdown-menu dropdown-submenu"
+		>
+			<li data-th-each="obj, s : ${submenu}" >
+				<a class="dropdown-item" data-th-href="@{${obj.enlace}}" href="#" data-th-text="${obj.texto}">
+					Subitem
+				</a>
+				<ul data-th-if="${obj.tieneHijos()}" data-th-replace="~{ ::submenu( ${obj.slug}, ${obj.hijos} ) }"></ul>
+			</li>			
+		</ul>
+	</template>
+
+	<!-- Navigation-->
+	<nav data-th-fragment="nav" class="navbar navbar-expand-lg navbar-light bg-light">		
+		<div class="container px-4 px-lg-5">
+			
+			<!-- LOGO -->
+			<a class="navbar-brand" data-th-href="@{/}" href="#">TechNova</a>
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+				data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+				aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+				
+			<!-- MENU -->
+			<div class="collapse navbar-collapse" id="navbarSupportedContent">
+				<ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">					
+					<li class="nav-item" data-th-classappend="${item.tieneHijos()}?'dropdown'" data-th-each="item, stat : ${menu}">						
+						<a data-th-if="${item.tieneHijos()}"
+							data-mdb-dropdown-init=""
+							class="nav-link dropdown-toggle"							
+							role="button"
+							data-mdb-toggle="dropdown"
+							aria-expanded="false"							
+							data-th-text="${item.texto}" 
+							data-th-href="@{${item.enlace}}">
+							Enlace
+						</a>
+						
+						<ul data-th-if="${item.tieneHijos()}" data-th-replace="~{ ::submenu( ${item.slug}, ${item.hijos} ) }"></ul>
+						
+						<a data-th-if="${!item.tieneHijos()}"
+							class="nav-link"							 
+							data-th-text="${item.texto}" 
+							data-th-href="@{${item.enlace}}">
+							Enlace
+						</a>
+					</li>
+				</ul>
+				
+				<!-- TEMPLATE -->
+				<ul data-th-remove="all" class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+					<li class="nav-item"><a class="nav-link active" aria-current="page" href="#!">Home</a></li>
+					<li class="nav-item"><a class="nav-link" href="#!">About</a></li>
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
+							data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
+						<ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+							<li><a class="dropdown-item" href="#!">All Products</a></li>
+							<li>
+								<hr class="dropdown-divider" />
+							</li>
+							<li><a class="dropdown-item" href="#!">Popular Items</a></li>
+							<li><a class="dropdown-item" href="#!">New Arrivals</a></li>
+						</ul>
+					</li>
+				</ul>
+				<form class="d-flex">
+					<span class="d-flex align-items-center pe-3">
+						Bienvenido &nbsp;<span sec:authentication="name" style="text-transform: capitalize;"></span>
+						<a class="ms-2" data-th-href="@{/logout}" data-sec-authorize="isAuthenticated()">(Salir)</a>						
+						<a class="ms-2" data-th-href="@{/ingresar}" data-sec-authorize="!isAuthenticated()">(Ingresar)</a>
+					</span>
+					<a data-th-href="@{/carrito}" class="btn btn-outline-dark" type="submit">
+						<i class="bi-cart-fill me-1"></i>
+						Carro
+						<span class="badge bg-dark text-white ms-1 rounded-pill" data-th-text="${carrito.cantidad}">0</span>
+					</a>
+				</form>
+			</div>
+		</div>
+	</nav>
+
+</body>
+
+</html>

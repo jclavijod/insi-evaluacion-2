@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html data-th-replace="~{layout :: layout(_, ~{::#cuerpo})}" lang="es">	
+	<body>
+		<div id="cuerpo">
+            <div style="min-height: 250px; padding: 100px;">
+                <h5 class="text-center mb-3">Muchas gracias por su compra <span data-th-text="${pedido.comprador.nombre}"></span>.</h5>
+            </div>
+		</div>
+	</body>
+</html>

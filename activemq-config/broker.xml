@@ -1,18 +1,74 @@
-<?xml version='1.0'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <configuration xmlns="urn:activemq">
-   <core xmlns="urn:activemq:core">
-      <name>0.0.0.0</name>
-      <persistence-enabled>true</persistence-enabled>
-      <acceptors>
-         <acceptor name="artemis">tcp://0.0.0.0:61616?protocols=CORE,AMQP,STOMP,HORNETQ,MQTT,OPENWIRE</acceptor>
-      </acceptors>
-      <addresses>
-         <address name="jcl_web_pedidos"><anycast><queue name="jcl_web_pedidos" /></anycast></address>
-         <address name="jcl_mkp_pedidos"><anycast><queue name="jcl_mkp_pedidos" /></anycast></address>
-         <address name="jcl_pedidos"><anycast><queue name="jcl_pedidos" /></anycast></address>
-         <address name="jcl_facturacion"><anycast><queue name="jcl_facturacion" /></anycast></address>
-         <address name="jcl_facturacion_respuesta"><anycast><queue name="jcl_facturacion_respuesta" /></anycast></address>
-         <address name="jcl_bodega"><anycast><queue name="jcl_bodega" /></anycast></address>
-      </addresses>
-   </core>
+  <core xmlns="urn:activemq:core">
+    <name>0.0.0.0</name>
+    <persistence-enabled>true</persistence-enabled>
+    <security-enabled>true</security-enabled>
+
+    <!-- Aumentado para entorno de pruebas -->
+    <max-disk-usage>99</max-disk-usage>
+
+    <acceptors>
+      <acceptor name="artemis">
+        tcp://0.0.0.0:61616?protocols=CORE,AMQP,STOMP,HORNETQ,MQTT,OPENWIRE
+      </acceptor>
+    </acceptors>
+
+    <addresses>
+      <address name="jcl_web_pedidos">
+        <anycast><queue name="jcl_web_pedidos"/></anycast>
+      </address>
+
+      <address name="jcl_mkp_pedidos">
+        <anycast><queue name="jcl_mkp_pedidos"/></anycast>
+      </address>
+
+      <address name="jcl_canonical_pedidos">
+        <anycast><queue name="jcl_canonical_pedidos"/></anycast>
+      </address>
+
+      <address name="jcl_pedidos">
+        <anycast><queue name="jcl_pedidos"/></anycast>
+      </address>
+
+      <address name="jcl_facturacion">
+        <anycast><queue name="jcl_facturacion"/></anycast>
+      </address>
+
+      <address name="jcl_facturacion_respuesta">
+        <anycast><queue name="jcl_facturacion_respuesta"/></anycast>
+      </address>
+
+      <address name="jcl_bodega">
+        <anycast><queue name="jcl_bodega"/></anycast>
+      </address>
+    </addresses>
+
+    <security-settings>
+      <security-setting match="jcl_#">
+        <permission type="createAddress" roles="amq"/>
+        <permission type="deleteAddress" roles="amq"/>
+        <permission type="createNonDurableQueue" roles="amq"/>
+        <permission type="deleteNonDurableQueue" roles="amq"/>
+        <permission type="createDurableQueue" roles="amq"/>
+        <permission type="deleteDurableQueue" roles="amq"/>
+        <permission type="consume" roles="amq"/>
+        <permission type="browse" roles="amq"/>
+        <permission type="send" roles="amq"/>
+      </security-setting>
+
+      <security-setting match="#">
+        <permission type="createAddress" roles="amq"/>
+        <permission type="deleteAddress" roles="amq"/>
+        <permission type="createNonDurableQueue" roles="amq"/>
+        <permission type="deleteNonDurableQueue" roles="amq"/>
+        <permission type="createDurableQueue" roles="amq"/>
+        <permission type="deleteDurableQueue" roles="amq"/>
+        <permission type="consume" roles="amq"/>
+        <permission type="browse" roles="amq"/>
+        <permission type="send" roles="amq"/>
+      </security-setting>
+    </security-settings>
+
+  </core>
 </configuration>

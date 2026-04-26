@@ -1,50 +1,30 @@
 package cl.jclavijo.bodega;
 
 import javax.jms.*;
-import javax.jms.*;
-import javax.jms.*;
-import javax.jms.*;
-import javax.jms.*;
-import javax.jms.*;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 public class WarehouseAdapterMain {
-
-    private static final String BROKER_URL = "tcp://localhost:61616";
-    private static final String IN_BODEGA = "jcl_bodega";
-
     public static void main(String[] args) {
-        ConnectionFactory cf = new ActiveMQConnectionFactory(BROKER_URL);
+        ConnectionFactory cf = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        try (Connection conn = cf.createConnection()) {
+            conn.start();
+            Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-        try {
-            Connection connection = cf.createConnection();
-            connection.start();
-            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            MessageConsumer consumer = sess.createConsumer(sess.createQueue("jcl_bodega"));
 
-            MessageConsumer consumer = session.createConsumer(session.createQueue(IN_BODEGA));
+            System.out.println("[INFO] Bodega iniciada. Escuchando cola: jcl_bodega");
 
-            System.out.println("[INFO] Bodega iniciada.");
-            System.out.println("[INFO] Escuchando cola: " + IN_BODEGA);
-
-            consumer.setMessageListener((MessageListener) message -> {
-                try {
-                    if (message instanceof TextMessage textMessage) {
-                        String payload = textMessage.getText();
-                        System.out.println("\n----");
-                        System.out.println("[LOG 6] Pedido consumido por Bodega:");
-                        System.out.println(payload);
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error en Bodega:");
-                    e.printStackTrace();
-                }
-            });
-
-            Thread.sleep(Long.MAX_VALUE);
-
-        } catch (Exception e) {
-            System.err.println("[ERROR] Bodega no pudo iniciar:");
+            while (true) {
+                Message m = consumer.receive(1000);
+                if (m == null) continue;
+                if (!(m instanceof TextMessage)) continue;
+                String payload = ((TextMessage) m).getText();
+                System.out.println("\n[LOG 6] Pedido consumido por Bodega:\n" + payload);
+            }
+        } catch (Throwable e) {
+            System.err.println("[FATAL] Bodega:");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }

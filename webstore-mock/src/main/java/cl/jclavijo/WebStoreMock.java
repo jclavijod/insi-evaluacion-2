@@ -32,9 +32,11 @@ public class WebStoreMock {
                     </pedido>
                     """;
 
-            System.out.println("[INFO] Enviando pedido XML de prueba...");
+            System.out.println("[INFO] Enviando pedido XML de prueba a jcl_web_pedidos ...");
             prod.send(sess.createTextMessage(xml));
-            System.out.println("[OK] Enviado a jcl_web_pedidos.");
+            System.out.println("[OK] Enviado.");
+            // esperar un poco para que broker procese antes de cerrar (evita threads en librería)
+            Thread.sleep(300);
         }
     }
 }
